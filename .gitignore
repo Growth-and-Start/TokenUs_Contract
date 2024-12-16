@@ -29,3 +29,7 @@ debug.log
 
 # 테스트 보고서
 test-results/
+
+# remix 사용시 필요
+.deps
+.states
