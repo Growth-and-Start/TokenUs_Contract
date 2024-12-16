@@ -4,7 +4,7 @@ import Web3 from "web3";
 import Container from "../components/Container";
 import Header from "../components/Header";
 
-import VideoNFT from "../build/contracts_abi/VideoNFT.json";
+import VideoNFT from "../contracts/VideoNFT.json";
 
 function VideoUpload() {
   const { menu } = useParams();
@@ -46,7 +46,7 @@ function VideoUpload() {
 
         const networkId = await web3.eth.net.getId();
         const deployedNetwork = VideoNFT.networks[networkId];
-
+        // const deployedNetwork = '0xCeF932F016Df7895EBe53977791669f0228a7Dba';
         console.log(networkId);
 
         if (!deployedNetwork) {
@@ -56,7 +56,7 @@ function VideoUpload() {
 
         const contract = new web3.eth.Contract(
           VideoNFT.abi,
-          deployedNetwork && deployedNetwork.address
+          deployedNetwork.address
         );
 
         setMinting(true);

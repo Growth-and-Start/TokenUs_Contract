@@ -6,7 +6,7 @@ import Header from "../components/Header";
 import "./styles/IssueToken.css";
 
 // 컨트랙트 ABI 및 주소
-import ChannelToken from "../build/contracts_abi/Channel.json";
+import ChannelToken from "../contracts/Channel.json";
 
 function IssueToken() {
   const { menu } = useParams();
