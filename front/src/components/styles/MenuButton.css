@@ -1,0 +1,18 @@
+.menu-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  height: 4.5rem;
+
+  font-size: 2vw;
+
+  border-radius: 10px;
+  background-color: #D9D9D9;
+  color: black;
+}
+
+.menu-btn:hover {
+  background-color:tomato;
+  color:aliceblue;
+}
