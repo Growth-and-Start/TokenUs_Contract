@@ -14,5 +14,6 @@ module.exports = async function (deployer) {
   await deployer.deploy(Swap, tokenus.address, channel.address);
   const swap = await Swap.deployed(); 
 
-  deployer.deploy(VideoNFT);
+  await deployer.deploy(VideoNFT);
+  const videonft = await VideoNFT.deployed(); 
 };
