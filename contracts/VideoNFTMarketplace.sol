@@ -30,13 +30,15 @@ contract VideoNFTMarketplace is Ownable {
 
     // NFT 판매 등록 함수
     function listNFT(uint256 tokenId, uint256 price) external {
-        require(videoNFT.ownerOf(tokenId) == msg.sender, "You are not the owner of this NFT"); // 호출자가 NFT 소유자인지 확인
-        require(price > 0, "Price must be greater than zero"); // 가격이 0보다 큰지 확인
+        require(videoNFT.ownerOf(tokenId) == msg.sender, "You are not the owner of this NFT");
+        require(price > 0, "Price must be greater than zero");
 
-        // // VideoNFTMarketplace 컨트랙트에 전송 권한을 부여
-        // videoNFT.approve(address(this), tokenId);
+        // NFT 전송 권한이 없는 경우 revert
+        require(
+            videoNFT.getApproved(tokenId) == address(this) || videoNFT.isApprovedForAll(msg.sender, address(this)),
+            "Marketplace is not approved to transfer this NFT"
+        );
 
-        // Listing 구조체 생성 및 저장
         listings[tokenId] = Listing({
             tokenId: tokenId,
             seller: msg.sender,
@@ -44,7 +46,7 @@ contract VideoNFTMarketplace is Ownable {
             isListed: true
         });
 
-        emit NFTListed(tokenId, msg.sender, price); // 이벤트 발생
+        emit NFTListed(tokenId, msg.sender, price);
     }
 
     // NFT 판매 등록 취소 함수
@@ -76,8 +78,11 @@ contract VideoNFTMarketplace is Ownable {
         emit NFTPurchased(tokenId, msg.sender, listing.price); // 이벤트 발생
     }
 
-    // 판매 중인 NFT 목록 반환 함수
-    function getListedNFTs() external view returns (Listing[] memory) {
+    function getListedNFTs() external view returns(
+        uint256[] memory tokenIds,
+        address[] memory sellers,
+        uint256[] memory prices
+    ){
         uint256 totalTokens = videoNFT.totalSupply(); // 발행된 전체 토큰 수
         uint256 listedCount = 0;
 
@@ -88,17 +93,22 @@ contract VideoNFTMarketplace is Ownable {
             }
         }
 
-        Listing[] memory listedNFTs = new Listing[](listedCount); // 판매 중인 NFT를 담을 배열 생성
+        // 개별 배열 생성
+        tokenIds = new uint256[](listedCount);
+        sellers = new address[](listedCount);
+        prices = new uint256[](listedCount);
+
         uint256 index = 0;
 
-        // 판매 중인 NFT의 정보를 배열에 저장
+        // 판매 중인 NFT 데이터를 배열에 저장
         for (uint256 i = 1; i <= totalTokens; i++) {
             if (listings[i].isListed) {
-                listedNFTs[index] = listings[i];
+                tokenIds[index] = listings[i].tokenId;
+                sellers[index] = listings[i].seller;
+                prices[index] = listings[i].price;
                 index++;
             }
         }
-
-        return listedNFTs; // 판매 중인 NFT 목록 반환
+        return (tokenIds, sellers, prices);
     }
 }
