@@ -9,61 +9,93 @@ contract VideoNFT is ERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
 
     struct Video {
-        uint256 id;
-        string metadataURI; // AWS S3에 저장된 영상 메타데이터 URI
-        address creator; // 크리에이터 주소
-        uint256 totalSupply; // 발행할 NFT 총 수량
-        string name; // NFT 이름
-        string symbol; // NFT 심볼
+        uint256 videoId;         // 외부 DB의 영상 ID
+        string nftName;          // NFT 이름
+        string nftSymbol;        // NFT 심볼
+        string metadataURI;      // 메타데이터 URI
+        address creatorAddress;         // 크리에이터 지갑 주소
+        uint256 totalSupply;     // NFT 총 발행 개수
+        uint256 price;           // NFT 1개 가격
     }
 
-    Counters.Counter private _videoIdCounter;
     Counters.Counter private _tokenIdCounter;
 
-    mapping(uint256 => Video) public videos; // videoId -> Video
-    mapping(uint256 => uint256) public tokenToVideo; // tokenId -> videoId
-
-    constructor() ERC721("", "") {}
+    mapping(uint256 => Video) public videos;            // videoId -> Video
+    mapping(uint256 => uint256) public tokenToVideo;    // tokenId -> videoId
+    mapping(uint256 => bool) public videoExists;        // 중복 videoId 방지
 
     event VideoNFTMinted(
         uint256 indexed videoId,
-        address indexed creator,
+        address indexed creatorAddress,
         uint256 totalSupply,
-        string NFTname,
-        string NFTsymbol
+        string name,
+        string symbol,
+        uint256 price
     );
 
-    // 영상 업로드 및 NFT 발행
+    constructor(string memory name, string memory symbol) ERC721(name, symbol) {}
+
     function mintVideoNFT(
+        uint256 videoId,
+        string memory nftName,
+        string memory nftSymbol,
         string memory metadataURI,
         uint256 totalSupply,
-        string memory NFTname,
-        string memory NFTsymbol
+        uint256 price,
+        address creatorAddress
     ) external {
+        require(!videoExists[videoId], "Video ID already used");
         require(totalSupply > 0, "Total supply must be greater than 0");
-        require(bytes(NFTname).length > 0, "NFT name cannot be empty");
-        require(bytes(NFTsymbol).length > 0, "NFT symbol cannot be empty");
-
-        _videoIdCounter.increment();
-        uint256 videoId = _videoIdCounter.current();
+        require(bytes(metadataURI).length > 0, "Metadata URI cannot be empty");
+        require(creatorAddress != address(0), "Invalid creator address");
 
         videos[videoId] = Video({
-            id: videoId,
+            videoId: videoId,
+            nftName: nftName,
+            nftSymbol: nftSymbol,
             metadataURI: metadataURI,
-            creator: msg.sender,
+            creatorAddress: creatorAddress,
             totalSupply: totalSupply,
-            name: NFTname,
-            symbol: NFTsymbol
+            price: price
         });
+
+        videoExists[videoId] = true;
 
         for (uint256 i = 0; i < totalSupply; i++) {
             _tokenIdCounter.increment();
             uint256 tokenId = _tokenIdCounter.current();
 
-            _safeMint(msg.sender, tokenId);
+            _mint(creatorAddress, tokenId);
             tokenToVideo[tokenId] = videoId;
         }
 
-        emit VideoNFTMinted(videoId, msg.sender, totalSupply, NFTname, NFTsymbol);
+        emit VideoNFTMinted(videoId, creatorAddress, totalSupply, nftName, nftSymbol, price);
     }
+
+    // 🎯 영상 ID로 영상 관련 NFT 정보 조회
+    function getVideoInfo(uint256 videoId) external view returns (
+        string memory nftName,
+        string memory nftSymbol,
+        string memory metadataURI,
+        address creatorAddress,
+        uint256 totalSupply,
+        uint256 price
+    ) {
+        Video memory video = videos[videoId];
+        return (
+            video.nftName,
+            video.nftSymbol,
+            video.metadataURI,
+            video.creatorAddress,
+            video.totalSupply,
+            video.price
+        );
+    }
+
+    // 🎯 NFT tokenId로 어떤 영상(videoId)에 속하는지 조회
+    function getVideoIdOfToken(uint256 tokenId) external view returns (uint256) {
+        return tokenToVideo[tokenId];
+    }
+
+    
 }

@@ -41,10 +41,10 @@
  * https://trufflesuite.com/docs/truffle/getting-started/using-the-truffle-dashboard/
  */
 
-// require('dotenv').config();
-// const { MNEMONIC, PROJECT_ID } = process.env;
+require('dotenv').config();
+const { MNEMONIC, PROJECT_ID } = process.env;
 
-// const HDWalletProvider = require('@truffle/hdwallet-provider');
+const HDWalletProvider = require('@truffle/hdwallet-provider');
 
 module.exports = {
   /**
@@ -69,6 +69,32 @@ module.exports = {
      port: 8545,            // Standard Ethereum port (default: none)
      network_id: "*",       // Any network (default: none)
     },
+    sepolia: {
+      provider: () =>
+        new HDWalletProvider(
+          process.env.MNEMONIC, // Metamask 시드 문구
+          `https://eth-sepolia.g.alchemy.com/v2/${process.env.PROJECT_ID}`
+        ),
+        network_id: 11155111, // Sepolia 네트워크 ID
+        gas: 5500000,         // 적절한 가스 제한 설정
+        confirmations: 3,      // 트랜잭션 확정 수
+        timeoutBlocks: 500,
+        skipDryRun: true,
+    },
+    amoy: {
+      provider: () =>new HDWalletProvider(
+        process.env.PRIVATE_KEY, 
+        `https://polygon-amoy.g.alchemy.com/v2/${process.env.PROJECT_ID}`
+      ),
+        network_id: 80002, // Sepolia 네트워크 ID
+        gas: 5000000, // 적절한 Gas Limit 설정
+        gasPrice: 30000000000, // 30 Gwei (현재 네트워크 상황에 따라 조정 가능)
+        confirmations: 2,      // 트랜잭션 확정 수
+        timeoutBlocks: 200,
+        skipDryRun: true,
+    },
+
+
     //
     // An additional network, but with some advanced options…
     // advanced: {
