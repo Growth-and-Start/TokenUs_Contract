@@ -18,6 +18,7 @@ contract VideoNFTMarketplace is Ownable {
     VideoNFT private videoNFT; // VideoNFT 컨트랙트의 인스턴스
     mapping(uint256 => Listing) public listings; // tokenId를 키로 사용하여 Listing 구조체를 저장
 
+
     // 이벤트 정의
     event NFTListed(uint256 indexed tokenId, address indexed seller, uint256 price);
     event NFTDelisted(uint256 indexed tokenId, address indexed seller);
@@ -30,24 +31,27 @@ contract VideoNFTMarketplace is Ownable {
 
     // NFT 판매 등록 함수
     function listNFT(uint256 tokenId, uint256 price) external {
-        require(videoNFT.ownerOf(tokenId) == msg.sender, "You are not the owner of this NFT");
-        require(price > 0, "Price must be greater than zero");
+        address nftOwner = videoNFT.ownerOf(tokenId);
 
-        // NFT 전송 권한이 없는 경우 revert
         require(
-            videoNFT.getApproved(tokenId) == address(this) || videoNFT.isApprovedForAll(msg.sender, address(this)),
-            "Marketplace is not approved to transfer this NFT"
+            msg.sender == nftOwner ||
+            videoNFT.getApproved(tokenId) == msg.sender ||
+            videoNFT.isApprovedForAll(nftOwner, msg.sender),
+            "You are not authorized to list this NFT"
         );
+
+        require(price > 0, "Price must be greater than zero");
 
         listings[tokenId] = Listing({
             tokenId: tokenId,
-            seller: msg.sender,
+            seller: nftOwner, // ✅ 실제 소유자를 seller로 저장
             price: price,
             isListed: true
         });
 
-        emit NFTListed(tokenId, msg.sender, price);
+        emit NFTListed(tokenId, nftOwner, price);
     }
+
 
     // NFT 판매 등록 취소 함수
     function delistNFT(uint256 tokenId) external {
@@ -70,6 +74,10 @@ contract VideoNFTMarketplace is Ownable {
         payable(listing.seller).transfer(listing.price);
 
         // NFT를 구매자에게 전송
+        require(
+            videoNFT.ownerOf(tokenId) == listing.seller,
+            "Seller no longer owns this NFT"
+        );
         videoNFT.safeTransferFrom(listing.seller, msg.sender, tokenId);
 
         // 판매 정보 삭제

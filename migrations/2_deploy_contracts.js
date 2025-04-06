@@ -16,8 +16,8 @@ module.exports = async function (deployer) {
   // const swap = await Swap.deployed(); 
 
   // (2) VideoNFT 배포 (name/symbol은 임시로 넣어도 됨 — 사용 안 함)
-  await deployer.deploy(VideoNFT, "VideoNFT", "VNFT");
-  const videoNFT = await VideoNFT.deployed();
+  // await deployer.deploy(VideoNFT, "VideoNFT", "VNFT");
+  // const videoNFT = await VideoNFT.deployed();
 
   // (3) VideoNFTMarketplace 배포
   // await deployer.deploy(VideoNFTMarketplace, videoNFT.address);
