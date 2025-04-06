@@ -23,37 +23,56 @@ contract VideoNFTMarketplace is Ownable {
     event NFTDelisted(uint256 indexed tokenId, address indexed seller);
     event NFTPurchased(uint256 indexed tokenId, address indexed buyer, uint256 price);
 
-    // 생성자: VideoNFT 컨트랙트 주소를 받아 초기화
+    // 생성자: VideoNFT 컨트랙트 주소r로 초기화
     constructor(address _videoNFTAddress) {
-        videoNFT = VideoNFT(_videoNFTAddress); // VideoNFT 컨트랙트 인스턴스를 설정
+        videoNFT = VideoNFT(_videoNFTAddress);
     }
+
 
     // NFT 판매 등록 함수
     function listNFT(uint256 tokenId, uint256 price) external {
-        require(videoNFT.ownerOf(tokenId) == msg.sender, "You are not the owner of this NFT");
-        require(price > 0, "Price must be greater than zero");
+        address nftOwner = videoNFT.ownerOf(tokenId);
+        address trustedOperator = videoNFT.trustedOperator();
 
-        // NFT 전송 권한이 없는 경우 revert
-        require(
-            videoNFT.getApproved(tokenId) == address(this) || videoNFT.isApprovedForAll(msg.sender, address(this)),
-            "Marketplace is not approved to transfer this NFT"
+        // ✅ 인증 조건: 직접 소유자이거나, 서버(trustedOperator)이면서 사전 승인받았을 때만 허용
+        bool isOwner = msg.sender == nftOwner;
+        bool isAuthorizedOperator = (
+            msg.sender == trustedOperator &&
+            (videoNFT.getApproved(tokenId) == trustedOperator ||
+             videoNFT.isApprovedForAll(nftOwner, trustedOperator))
         );
+
+        require(isOwner || isAuthorizedOperator, "Not authorized to list this NFT");
 
         listings[tokenId] = Listing({
             tokenId: tokenId,
-            seller: msg.sender,
+            seller: nftOwner, // ✅ 실제 소유자를 seller로 저장
             price: price,
             isListed: true
         });
 
-        emit NFTListed(tokenId, msg.sender, price);
+        emit NFTListed(tokenId, nftOwner, price);
     }
+
 
     // NFT 판매 등록 취소 함수
     function delistNFT(uint256 tokenId) external {
+
+        address nftOwner = videoNFT.ownerOf(tokenId);
+        address trustedOperator = videoNFT.trustedOperator();
+
         Listing memory listing = listings[tokenId]; // 해당 토큰의 판매 정보를 가져옴
         require(listing.isListed, "NFT is not listed"); // NFT가 판매 등록되어 있는지 확인
-        require(listing.seller == msg.sender, "You are not the seller"); // 호출자가 판매자인지 확인
+        
+        // ✅ 인증 조건: 직접 소유자이거나, 서버(trustedOperator)이면서 사전 승인받았을 때만 허용
+        bool isOwner = msg.sender == nftOwner;
+        bool isAuthorizedOperator = (
+            msg.sender == trustedOperator &&
+            (videoNFT.getApproved(tokenId) == trustedOperator ||
+             videoNFT.isApprovedForAll(nftOwner, trustedOperator))
+        );
+
+        require(isOwner || isAuthorizedOperator, "Not authorized to delist this NFT");
 
         delete listings[tokenId]; // 판매 정보 삭제
 
@@ -87,8 +106,9 @@ contract VideoNFTMarketplace is Ownable {
         uint256 listedCount = 0;
 
         // 판매 중인 NFT의 개수 계산
-        for (uint256 i = 1; i <= totalTokens; i++) {
-            if (listings[i].isListed) {
+        for (uint256 i = 0; i < totalTokens; i++) {
+            uint256 tokenId = videoNFT.tokenByIndex(i);
+            if (listings[tokenId].isListed) {
                 listedCount++;
             }
         }

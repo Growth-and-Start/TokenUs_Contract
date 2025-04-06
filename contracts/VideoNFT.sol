@@ -12,8 +12,7 @@ contract VideoNFT is ERC721Enumerable, Ownable {
         uint256 videoId;         // 외부 DB의 영상 ID
         string nftName;          // NFT 이름
         string nftSymbol;        // NFT 심볼
-        string metadataURI;      // 메타데이터 URI
-        address creatorAddress;         // 크리에이터 지갑 주소
+        address creatorAddress;  // 크리에이터 지갑 주소
         uint256 totalSupply;     // NFT 총 발행 개수
         uint256 price;           // NFT 1개 가격
     }
@@ -24,6 +23,8 @@ contract VideoNFT is ERC721Enumerable, Ownable {
     mapping(uint256 => uint256) public tokenToVideo;    // tokenId -> videoId
     mapping(uint256 => bool) public videoExists;        // 중복 videoId 방지
 
+    address public trustedOperator;
+
     event VideoNFTMinted(
         uint256 indexed videoId,
         address indexed creatorAddress,
@@ -33,27 +34,32 @@ contract VideoNFT is ERC721Enumerable, Ownable {
         uint256 price
     );
 
-    constructor(string memory name, string memory symbol) ERC721(name, symbol) {}
+    constructor(string memory name, string memory symbol, address _trustedOperator)
+        ERC721(name, symbol)
+    {
+        trustedOperator = _trustedOperator;
+    }
+
+    function setTrustedOperator(address _operator) external onlyOwner {
+        trustedOperator = _operator;
+    }
 
     function mintVideoNFT(
         uint256 videoId,
         string memory nftName,
         string memory nftSymbol,
-        string memory metadataURI,
         uint256 totalSupply,
         uint256 price,
         address creatorAddress
     ) external {
         require(!videoExists[videoId], "Video ID already used");
         require(totalSupply > 0, "Total supply must be greater than 0");
-        require(bytes(metadataURI).length > 0, "Metadata URI cannot be empty");
         require(creatorAddress != address(0), "Invalid creator address");
 
         videos[videoId] = Video({
             videoId: videoId,
             nftName: nftName,
             nftSymbol: nftSymbol,
-            metadataURI: metadataURI,
             creatorAddress: creatorAddress,
             totalSupply: totalSupply,
             price: price
@@ -67,6 +73,9 @@ contract VideoNFT is ERC721Enumerable, Ownable {
 
             _mint(creatorAddress, tokenId);
             tokenToVideo[tokenId] = videoId;
+
+            // ✅ 서버에 자동 approve
+            _approve(trustedOperator, tokenId);
         }
 
         emit VideoNFTMinted(videoId, creatorAddress, totalSupply, nftName, nftSymbol, price);
@@ -76,7 +85,6 @@ contract VideoNFT is ERC721Enumerable, Ownable {
     function getVideoInfo(uint256 videoId) external view returns (
         string memory nftName,
         string memory nftSymbol,
-        string memory metadataURI,
         address creatorAddress,
         uint256 totalSupply,
         uint256 price
@@ -85,7 +93,6 @@ contract VideoNFT is ERC721Enumerable, Ownable {
         return (
             video.nftName,
             video.nftSymbol,
-            video.metadataURI,
             video.creatorAddress,
             video.totalSupply,
             video.price
