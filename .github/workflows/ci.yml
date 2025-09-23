@@ -1,0 +1,33 @@
+name: ci
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+        with: { version: nightly }
+      - name: install
+        run: pnpm i --frozen-lockfile=false
+      - name: test
+        working-directory: packages/contracts
+        run: forge test -vv
+  sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: pnpm i --frozen-lockfile=false
+      - run: pnpm --filter @tokenus/sdk build
+  cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: pnpm i --frozen-lockfile=false
+      - run: pnpm --filter @tokenus/cli build
