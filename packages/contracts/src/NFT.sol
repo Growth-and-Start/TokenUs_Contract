@@ -3,7 +3,6 @@ pragma solidity ^0.8.20;
 
 import "../lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 import "../lib/openzeppelin-contracts/contracts/utils/Strings.sol";
-import "../lib/openzeppelin-contracts/contracts/utils/Counters.sol";
 import "./CascadingSplit.sol";
 
 /// @title NFT (Works + Editions + Derivative Batch)
@@ -13,7 +12,6 @@ import "./CascadingSplit.sol";
 ///  - 각 파생 에디션은 parentOf[tokenId]=부모 tokenId로 계보 기록.
 contract NFT is ERC721 {
     using Strings for uint256;
-    using Counters for Counters.Counter;
 
     address public admin; modifier onlyAdmin(){ require(msg.sender==admin,"NOT_ADMIN"); _; }
 
@@ -25,12 +23,12 @@ contract NFT is ERC721 {
     mapping(uint256 => uint256) public parentOf;  // tokenId → parent tokenId
     mapping(uint256 => address) public splitOf;   // tokenId → split addr
 
-    Counters.Counter private _nextTokenId;
+    uint256 private _nextTokenId;
 
     event SplitCreated(address split, address upstream, address child, uint16 upstreamBps);
     event WorkCreated(uint256 indexed workId, address creator, address split, string baseURI);
 
-    constructor() ERC721("VideoNFT","vNFT") { admin=msg.sender; _nextTokenId.increment(); }
+    constructor() ERC721("VideoNFT","vNFT") { admin=msg.sender; _nextTokenId = 1; }
 
     // ── 원본(루트) 작품 등록
     function createOriginalWork(
@@ -58,7 +56,7 @@ contract NFT is ERC721 {
         require(works[workId].exists,"NO_WORK"); require(amount>0,"AMOUNT_ZERO");
         ids = new uint256[](amount);
         for(uint256 i=0;i<amount;i++){
-            uint256 id=_nextTokenId.current(); _nextTokenId.increment();
+            uint256 id=_nextTokenId++; 
             _safeMint(to,id);
             workOf[id]=workId;
             creatorOf[id]=works[workId].creator;
