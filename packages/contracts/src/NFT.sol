@@ -5,7 +5,7 @@ import "../lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 import "../lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 import "./CascadingSplit.sol";
 
-/// @title NFT (Works + Editions + Derivative Batch)
+/// @title NFT
 /// @notice
 ///  - 원본/파생 모두 "작품(Work)" 단위로 관리, 에디션 여러 장 민팅 가능.
 ///  - 파생 작품 생성 시 작품 전용 Split 1개 생성 → 해당 작품 에디션이 공유.
@@ -13,9 +13,10 @@ import "./CascadingSplit.sol";
 contract NFT is ERC721 {
     using Strings for uint256;
 
-    address public admin; modifier onlyAdmin(){ require(msg.sender==admin,"NOT_ADMIN"); _; }
+    // address public admin; 
+    // modifier onlyAdmin(){ require(msg.sender==admin,"NOT_ADMIN"); _; }
 
-    struct Work { address creator; address split; string baseURI; bool exists; }
+    struct Work { address creator; address split; bool exists; }
     mapping(uint256 => Work) public works;     // workId → Work
     mapping(uint256 => uint256) public workOf; // tokenId → workId
 
@@ -26,32 +27,29 @@ contract NFT is ERC721 {
     uint256 private _nextTokenId;
 
     event SplitCreated(address split, address upstream, address child, uint16 upstreamBps);
-    event WorkCreated(uint256 indexed workId, address creator, address split, string baseURI);
+    event WorkCreated(uint256 indexed workId, address creator, address split);
 
-    constructor() ERC721("VideoNFT","vNFT") { admin=msg.sender; _nextTokenId = 1; }
+    constructor() ERC721("NFT","tuNFT") {  _nextTokenId = 1; }
 
     // ── 원본(루트) 작품 등록
     function createOriginalWork(
         uint256 workId,
         address creator,
-        string  calldata baseURI,
         address splitAddr
-    ) external onlyAdmin {
+    ) external {
         require(!works[workId].exists, "WORK_EXISTS");
-        works[workId] = Work({ creator:creator, split:splitAddr, baseURI:baseURI, exists:true });
-        emit WorkCreated(workId, creator, splitAddr, baseURI);
+        works[workId] = Work({ creator:creator, split:splitAddr, exists:true });
+        emit WorkCreated(workId, creator, splitAddr);
     }
 
-    function setWorkBaseURI(uint256 workId, string calldata baseURI) external onlyAdmin {
-        require(works[workId].exists,"NO_WORK"); works[workId].baseURI=baseURI;
-    }
-    function setWorkSplit(uint256 workId, address splitAddr) external onlyAdmin {
-        require(works[workId].exists,"NO_WORK"); works[workId].split=splitAddr;
+    function setWorkSplit(uint256 workId, address splitAddr) external {
+        require(works[workId].exists,"NO_WORK"); 
+        works[workId].split=splitAddr;
     }
 
     // ── (공통) 작품 에디션 배치 민팅
     function mintEditionBatch(address to, uint256 workId, uint256 amount)
-        public onlyAdmin returns (uint256[] memory ids)
+        public returns (uint256[] memory ids)
     {
         require(works[workId].exists,"NO_WORK"); require(amount>0,"AMOUNT_ZERO");
         ids = new uint256[](amount);
@@ -70,9 +68,8 @@ contract NFT is ERC721 {
         uint256 parentTokenId,
         uint256 childWorkId,
         address childCreator,
-        string  calldata baseURI,
         uint16  upstreamBps
-    ) external onlyAdmin returns (address splitAddr) {
+    ) external returns (address splitAddr) {
         require(_ownerOf(parentTokenId)!=address(0),"NO_PARENT_TOKEN");
         require(!works[childWorkId].exists,"WORK_EXISTS");
         require(childCreator!=address(0),"CREATOR=0");
@@ -82,8 +79,8 @@ contract NFT is ERC721 {
         splitAddr = address(new CascadingSplit(upstream, childCreator, upstreamBps));
         emit SplitCreated(splitAddr, upstream, childCreator, upstreamBps);
 
-        works[childWorkId] = Work({ creator:childCreator, split:splitAddr, baseURI:baseURI, exists:true });
-        emit WorkCreated(childWorkId, childCreator, splitAddr, baseURI);
+        works[childWorkId] = Work({ creator:childCreator, split:splitAddr, exists:true });
+        emit WorkCreated(childWorkId, childCreator, splitAddr);
     }
 
     // ── 파생 작품 에디션 배치 민팅 + 계보(parent) 연결
@@ -92,17 +89,10 @@ contract NFT is ERC721 {
         uint256 childWorkId,
         uint256 parentTokenId,
         uint256 amount
-    ) external onlyAdmin returns (uint256[] memory ids) {
+    ) external returns (uint256[] memory ids) {
         require(works[childWorkId].exists,"NO_CHILD_WORK");
         require(_ownerOf(parentTokenId)!=address(0),"NO_PARENT_TOKEN");
         ids = mintEditionBatch(to, childWorkId, amount);
         for(uint256 i=0;i<ids.length;i++){ parentOf[ids[i]] = parentTokenId; }
-    }
-
-    // 메타데이터
-    function tokenURI(uint256 id) public view override returns (string memory){
-        _requireOwned(id);
-        string memory base = works[workOf[id]].baseURI;
-        return bytes(base).length==0 ? "" : string(abi.encodePacked(base,"/",id.toString(),".json"));
     }
 }
