@@ -36,16 +36,18 @@ contract NFT is ERC721 {
         uint256 workId,
         address creator,
         address splitAddr
-    ) external {
+    ) public {
         require(!works[workId].exists, "WORK_EXISTS");
         works[workId] = Work({ creator:creator, split:splitAddr, exists:true });
         emit WorkCreated(workId, creator, splitAddr);
     }
 
-    function setWorkSplit(uint256 workId, address splitAddr) external {
-        require(works[workId].exists,"NO_WORK"); 
-        works[workId].split=splitAddr;
-    }
+    function createOriginWorkBasic(
+      uint256 workId,
+      address creator
+    ) external {
+      createOriginalWork(workId, creator, address(0));
+    }   
 
     // ── (공통) 작품 에디션 배치 민팅
     function mintEditionBatch(address to, uint256 workId, uint256 amount)
@@ -64,7 +66,7 @@ contract NFT is ERC721 {
     }
 
     // ── 파생 작품 생성 + 작품 전용 Split 1개 생성
-    function createDerivativeWorkWithSplit(
+    function createDerivativeWork(
         uint256 parentTokenId,
         uint256 childWorkId,
         address childCreator,
@@ -93,6 +95,15 @@ contract NFT is ERC721 {
         require(works[childWorkId].exists,"NO_CHILD_WORK");
         require(_ownerOf(parentTokenId)!=address(0),"NO_PARENT_TOKEN");
         ids = mintEditionBatch(to, childWorkId, amount);
-        for(uint256 i=0;i<ids.length;i++){ parentOf[ids[i]] = parentTokenId; }
+        for(uint256 i=0;i<ids.length;i++){ 
+          parentOf[ids[i]] = parentTokenId; 
+        }
+    }
+
+
+    // 작품 split 주소 변경
+    function setWorkSplit(uint256 workId, address splitAddr) external {
+    require(works[workId].exists,"NO_WORK"); 
+    works[workId].split=splitAddr;
     }
 }
