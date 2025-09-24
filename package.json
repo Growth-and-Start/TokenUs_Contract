@@ -1,7 +1,13 @@
 {
-  "name": "tokenus",
+  "name": "tokenus_contract",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "private": true,
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@10.17.1",
   "scripts": {
     "bootstrap": "pnpm -r install",
     "build": "pnpm -r build",
@@ -11,5 +17,9 @@
   "workspaces": [
     "packages/*",
     "packages/examples/*"
-  ]
+  ],
+  "devDependencies": {
+    "solhint": "^6.0.1",
+    "typescript": "^5.9.2"
+  }
 }
