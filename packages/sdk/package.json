@@ -1,0 +1,18 @@
+{
+  "name": "@tokenus/sdk",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "",
+  "main": "index.js",
+  "scripts": { "build": "tsc -p tsconfig.json" },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.17.1",
+  "dependencies": {
+    "viem": "^2.37.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}
