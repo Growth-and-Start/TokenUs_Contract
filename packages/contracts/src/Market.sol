@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
-import "../lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 /// @title Market (NFT 마켓플레이스)
 /// @notice
@@ -125,7 +125,7 @@ contract Market is ReentrancyGuard {
     ///      - 2차: (가격-수수료) 중 "로열티"만 Split.deposit(), 나머지는 판매자 귀속
     /// @param nft ERC-721 컨트랙트 주소
     /// @param id  토큰 ID
- function buy(address nft, uint256 id) external payable notPaused nonReentrant {
+    function buy(address nft, uint256 id) external payable notPaused nonReentrant {
     Listing memory L = listings[nft][id];
     require(L.price > 0, "NO_LIST");
     require(msg.value == L.price, "BAD_PRICE");
@@ -135,7 +135,7 @@ contract Market is ReentrancyGuard {
     _pay(feeVault, fee);
 
     uint256 net   = msg.value - fee;         // 분배/판매자 정산 전 순액
-    
+
     address split = INFT(nft).splitOf(id);
     address creator = INFT(nft).creatorOf(id);
     bool isOriginal = (INFT(nft).parentOf(id) == 0);

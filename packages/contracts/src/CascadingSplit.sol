@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
-import "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// @title CascadingSplit
+/// @title CascadingSplit (수익금 분배 지갑)
 /// @notice 부모(upstream)/자식(child) 2수령자 구조. 부모가 Split이면 deposit() 재귀.
 /// @dev 원자성 보장(실패 시 revert), 재진입 방지.
 contract CascadingSplit is ReentrancyGuard {
