@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "../lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
-import "../lib/openzeppelin-contracts/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "./CascadingSplit.sol";
 
 /// @title NFT
@@ -18,8 +18,11 @@ contract NFT is ERC721 {
 
     struct Work { address creator; address split; bool exists; }
     mapping(uint256 => Work) public works;     // workId → Work
-    mapping(uint256 => uint256) public workOf; // tokenId → workId
+    mapping(uint256 => uint256[]) public tokensOfWork;   //workId -> tokenIds
 
+    
+    // 토큰 레벨 조회
+    mapping(uint256 => uint256) public workOf; // tokenId → workId
     mapping(uint256 => address) public creatorOf; // tokenId → creator
     mapping(uint256 => uint256) public parentOf;  // tokenId → parent tokenId
     mapping(uint256 => address) public splitOf;   // tokenId → split addr
@@ -28,6 +31,7 @@ contract NFT is ERC721 {
 
     event SplitCreated(address split, address upstream, address child, uint16 upstreamBps);
     event WorkCreated(uint256 indexed workId, address creator, address split);
+    event EditionBatchMinted(address indexed to, uint256 indexed workId, uint256[] ids);
 
     constructor() ERC721("NFT","tuNFT") {  _nextTokenId = 1; }
 
@@ -53,7 +57,8 @@ contract NFT is ERC721 {
     function mintEditionBatch(address to, uint256 workId, uint256 amount)
         public returns (uint256[] memory ids)
     {
-        require(works[workId].exists,"NO_WORK"); require(amount>0,"AMOUNT_ZERO");
+        require(works[workId].exists,"NO_WORK"); 
+        require(amount>0,"AMOUNT_ZERO");
         ids = new uint256[](amount);
         for(uint256 i=0;i<amount;i++){
             uint256 id=_nextTokenId++; 
@@ -63,6 +68,12 @@ contract NFT is ERC721 {
             splitOf[id]=works[workId].split; // 작품 Split 공유(없으면 0)
             ids[i]=id;
         }
+
+        for(uint i = 0; i < ids.length; i++) {
+            tokensOfWork[workId].push(ids[i]);
+        }
+
+        emit EditionBatchMinted(to, workId, ids);
     }
 
     // ── 파생 작품 생성 + 작품 전용 Split 1개 생성
@@ -105,5 +116,10 @@ contract NFT is ERC721 {
     function setWorkSplit(uint256 workId, address splitAddr) external {
     require(works[workId].exists,"NO_WORK"); 
     works[workId].split=splitAddr;
+    }
+
+    // wrokId에 해당하는 토큰 id 배열 전체를 반환
+    function getTokensOfWork(uint256 workId) public view returns (uint256[] memory) {
+        return tokensOfWork[workId];
     }
 }
