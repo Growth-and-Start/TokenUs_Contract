@@ -82,7 +82,7 @@ contract NFT is ERC721 {
         uint256 childWorkId,
         address childCreator,
         uint16  upstreamBps
-    ) external returns (address splitAddr) {
+    ) public returns (address splitAddr) {
         require(_ownerOf(parentTokenId)!=address(0),"NO_PARENT_TOKEN");
         require(!works[childWorkId].exists,"WORK_EXISTS");
         require(childCreator!=address(0),"CREATOR=0");
@@ -102,13 +102,32 @@ contract NFT is ERC721 {
         uint256 childWorkId,
         uint256 parentTokenId,
         uint256 amount
-    ) external returns (uint256[] memory ids) {
+    ) public returns (uint256[] memory ids) {
         require(works[childWorkId].exists,"NO_CHILD_WORK");
         require(_ownerOf(parentTokenId)!=address(0),"NO_PARENT_TOKEN");
         ids = mintEditionBatch(to, childWorkId, amount);
         for(uint256 i=0;i<ids.length;i++){ 
           parentOf[ids[i]] = parentTokenId; 
         }
+    }
+
+    // 원본 작품 생성 + 에디션 민팅 (통합)
+    function createAndMintOriginal(uint256 workId, address creator, address splitAddr, address to, uint256 amount)external returns(uint256[] memory ids){
+      createOriginalWork(workId, creator, splitAddr);
+      ids = mintEditionBatch(to, workId, amount);
+    }
+
+    // 파생 작품 생성 + 에디션 민팅 (통합)
+    function createAndMintDerivative(
+        uint256 parentTokenId,
+        uint256 childWorkId,
+        address childCreator,
+        uint16 upstreamBps,
+        address to,
+        uint256 amount
+    ) external returns (uint256[] memory ids) {
+        createDerivativeWork(parentTokenId, childWorkId, childCreator, upstreamBps);
+        ids = mintDerivativeEditionBatch(to, childWorkId, parentTokenId, amount);
     }
 
 
