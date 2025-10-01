@@ -1,5 +1,5 @@
 import { parseAbi, type Address } from 'viem';
-import { makeClients, makeClientsBrowser } from './clients';
+import { makeClientsBrowser } from './viemClients';
 import type { Listing } from './types';
 
 const marketAbi = parseAbi([
@@ -30,7 +30,7 @@ export async function buyNative(cfg:{rpcUrl:string,chain:any,account:`0x${string
   return walletClient.writeContract(request);
 }
 
-// 마켓플레이스에 판매 등록된 NFT 목록 조회
+// 마켓플레이스에 판매 등록된 NFT 조회
 export async function getListing(cfg:{rpcUrl:string,chain:any, market:Address, nft:Address, tokenId:bigint}) {
   const { publicClient } = makeClientsBrowser(cfg);
   const [seller, price, isPrimary] = await publicClient.readContract({

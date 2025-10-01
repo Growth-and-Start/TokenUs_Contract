@@ -1,5 +1,5 @@
 import { parseAbi, type Address } from 'viem';
-import { makeClients, makeClientsBrowser } from './clients';
+import { makeClients, makeClientsBrowser } from './viemClients';
 
 const erc721 = parseAbi([
   'function isApprovedForAll(address owner,address operator) view returns (bool)',

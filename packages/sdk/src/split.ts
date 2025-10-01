@@ -1,5 +1,5 @@
 import { parseAbi, type Address } from 'viem';
-import { makeClients, makeClientsBrowser } from './clients';
+import { makeClients, makeClientsBrowser } from './viemClients';
 
 const factoryAbi = parseAbi(['function create(address,address,uint16) returns (address)']);
 

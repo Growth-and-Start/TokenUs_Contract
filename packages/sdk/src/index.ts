@@ -2,7 +2,9 @@ export * from './types';
 export * as utils from  './utils';
 
 export * as addresses from './addresses';
-export * as clients from './clients';
+export * as viemClients from './viemClients';
+
+export * as client from './client'
 
 export * as approvals from './approvals';
 export * as nft from './nft';
