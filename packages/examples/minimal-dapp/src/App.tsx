@@ -1,22 +1,29 @@
 import React, { useState } from "react";
 import { createPublicClient, http } from "viem";
-import { polygonAmoy } from "viem/chains";
+import { polygon, polygonAmoy } from "viem/chains";
 import {
   nft,
   approvals,
   market,
   utils,
-  addresses,
 } from "../../../sdk/src/index";
 import { getTokensOfWork } from "../../../sdk/src/nft";
+import{createClient} from "../../../sdk/src/client";
 
+const RPC_URL = "https://rpc-amoy.polygon.technology";
 const CHAIN = polygonAmoy;
-// 배포 후 실제 주소로 교체하거나, SDK의 fromEnv/getAddresses 사용
-const ADDR = {
-  NFT: "0x7BC958539E32482F43a9E121d2f851D0DE0b5a5b",
-  Market: "0xc43268dE3d3EAD9179148Ff533eaCf284Bd9Ad10",
-  SplitFactory: "0x685DD7D24259861a3ECAa51fC6006a842684eB5a",
-} as const;
+const ADDRESSES = {
+  NFT: '0xD60d95955370d90D2396F0F9907ebCFCC918e59d' as `0x${string}`,
+  Market: '0x34F6c935641624c5F942244b34A852608a7da552' as `0x${string}`,
+  SplitFactory: '0x7604F6BB0861731ABE8cE7B2e77d04bDA54ee693' as `0x${string}`,
+}
+
+const tus = createClient({
+  rpcUrl: RPC_URL,
+  chain: CHAIN,
+  addresses: ADDRESSES,
+});
+
 
 function generateSimpleRandomBigInt(digitLength: number) {
   let randomString = String(Math.floor(Math.random() * 9) + 1);
@@ -32,26 +39,28 @@ const childId = generateSimpleRandomBigInt(3);
 export default function App() {
   const [acct, setAcct] = useState<`0x${string}` | null>(null);
   const [originalMint, setOriginalMint] = useState<boolean>(false);
-  const [rpcUrl] = useState<string>("https://rpc-amoy.polygon.technology");
 
   async function connect() {
     const eth = (window as any).ethereum;
     if (!eth) return alert("Install Metamask");
     const [a] = await eth.request({ method: "eth_requestAccounts" });
     setAcct(a);
+    tus.setAccount(a);
     alert(`Connected Account: ${a}`);
   }
 
   async function mintOriginal() {
+    console.log("mintOriginal called. Current account:", acct);
     if (!acct) return;
 
     const publicClient = createPublicClient({
       chain: CHAIN,
-      transport: http(rpcUrl),
+      transport: http(RPC_URL),
     });
 
+    
     try {
-      alert("1. 원본 작품 생성 트랜잭션을 보냅니다.");
+      alert("1. 원본 작품을 생성하고 NFT를 발행합니다.");
       console.log(
         "생성 작품 정보",
         "창작자:",
@@ -59,13 +68,9 @@ export default function App() {
         "/ 작품 아이디:",
         parentId
       );
-      const createTxHash = await nft.createOriginalWork({
-        rpcUrl,
-        chain: CHAIN,
-        account: acct,
-        nft: ADDR.NFT as `0x${string}`,
+      const createTxHash = await tus.nft.makeOriginalNFT({
         workId: parentId,
-        creator: acct,
+        amount: 3,
         split: "0x0000000000000000000000000000000000000000",
       });
 
@@ -75,29 +80,20 @@ export default function App() {
       }
 
       alert("2. 트랜잭션이 채굴되기를 기다립니다...");
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash: createTxHash,
-      });
+      const receipt = await tus.waitMining(createTxHash)
+
+      console.log("트랜잭션 영수증", receipt);
 
       if (receipt.status === "success") {
-        alert("3. 트랜잭션 성공! 이제 에디션을 민팅합니다.");
-        await nft.mintEditionBatch({
-          rpcUrl,
-          chain: CHAIN,
-          account: acct,
-          nft: ADDR.NFT as `0x${string}`,
-          to: acct,
-          workId: parentId,
-          amount: 3,
-        });
-        alert("원본 작품 + 3개 에디션 민팅 완료!");
+        alert("3. 트랜잭션 성공!");
         setOriginalMint(true);
       } else {
         alert("트랜잭션이 실패했습니다.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("에러가 발생했습니다.");
+      const errorMessage = error?.shortMessage || error.message || '알 수 없는 에러 발생';
+      alert(`에러가 발생했습니다: ${errorMessage}`);
     }
   }
 
@@ -106,22 +102,18 @@ export default function App() {
 
     const publicClient = createPublicClient({
       chain: CHAIN,
-      transport: http(rpcUrl),
+      transport: http(RPC_URL),
     });
 
-    const parentTokenIds = await getTokensOfWork(parentId, CHAIN, ADDR.NFT);
+    const parentTokenIds = await getTokensOfWork(parentId, CHAIN, ADDRESSES.NFT);
 
     try {
-      alert("1. 파생 작품 생성 트랜잭션을 보냅니다.");
-      const createTxHash = await nft.createDerivativeWork({
-        rpcUrl,
-        chain: CHAIN,
-        account: acct,
-        nft: ADDR.NFT as `0x${string}`,
+      alert("1. 파생 작품을 생성하고 NFT를 발행합니다.");
+      const createTxHash = await tus.nft.makeDerivativeNFT({
         parentTokenId: parentTokenIds[0],
         childWorkId: childId,
-        childCreator: acct,
         upstreamBps: 3000,
+        amount: 2
       });
 
       if (!createTxHash) {
@@ -135,24 +127,14 @@ export default function App() {
       });
 
       if (receipt.status === "success") {
-        alert("3. 트랜잭션 성공! 이제 파생 에디션을 민팅합니다.");
-        await nft.mintDerivativeEditionBatch({
-          rpcUrl,
-          chain: CHAIN,
-          account: acct,
-          nft: ADDR.NFT as `0x${string}`,
-          to: acct,
-          childWorkId: childId,
-          parentTokenId: parentTokenIds[0],
-          amount: 2,
-        });
-        alert("파생 작품 + 2개 에디션 민팅 완료!");
+        alert("3. 트랜잭션 성공!");
       } else {
         alert("트랜잭션이 실패했습니다.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("에러가 발생했습니다.");
+      const errorMessage = error?.shortMessage || error.message || '알 수 없는 에러 발생';
+      alert(`에러가 발생했습니다: ${errorMessage}`);
     }
   }
 
@@ -161,18 +143,12 @@ export default function App() {
 
     const publicClient = createPublicClient({
       chain: CHAIN,
-      transport: http(rpcUrl),
+      transport: http(RPC_URL),
     });
 
     try {
       alert('1. 마켓에 대한 NFT 전송 권한을 확인하고, 필요시 승인 트랜잭션을 보냅니다.');
-      const approvalTxHash = await approvals.ensureApprovalAll({
-        rpcUrl,
-        chain: CHAIN,
-        account: acct,
-        nft: ADDR.NFT as `0x${string}`,
-        operator: ADDR.Market as `0x${string}`,
-      });
+      const approvalTxHash = await tus.approvals.ensureApprovalAll({});
 
       if (approvalTxHash) {
         alert('2. 승인 트랜잭션이 채굴되기를 기다립니다...');
@@ -186,7 +162,7 @@ export default function App() {
         alert('이미 승인되어 있습니다. 리스팅을 진행합니다.');
       }
 
-      const parentTokenIds = await getTokensOfWork(parentId, CHAIN, ADDR.NFT);
+      const parentTokenIds = await getTokensOfWork(parentId, CHAIN, ADDRESSES.NFT);
       if (parentTokenIds.length === 0) {
         alert('리스팅할 토큰이 없습니다.');
         return;
@@ -196,7 +172,7 @@ export default function App() {
       }
 
       const listArgs = {
-        nft: ADDR.NFT as `0x${string}`,
+        nft: ADDRESSES.NFT as `0x${string}`,
         tokenId: parentTokenIds[0],
         priceWei: utils.toWei("0.1"),
         isPrimary: true,
@@ -204,11 +180,7 @@ export default function App() {
       console.log("Calling market.list with arguments:", listArgs);
 
       alert('3. 리스팅 트랜잭션을 보냅니다.');
-      const listTxHash = await market.list({
-        rpcUrl,
-        chain: CHAIN,
-        account: acct,
-        market: ADDR.Market as `0x${string}`,
+      const listTxHash = await tus.market.list({
         ...listArgs,
       });
 
