@@ -20,6 +20,16 @@ export async function list(cfg:{rpcUrl:string,chain:any,account:`0x${string}`, m
   return walletClient.writeContract(request);
 }
 
+// 마켓플레이스에 NFT 판매 등록 취소
+export async function delist(cfg:{rpcUrl:string,chain:any,account:`0x${string}`, market:Address, nft:Address, tokenId:bigint}) {
+  const { publicClient, walletClient } = makeClientsBrowser(cfg);
+  const { request } = await publicClient.simulateContract({
+    address: cfg.market, abi: marketAbi, functionName: 'cancel',
+    args: [cfg.nft, cfg.tokenId], account: cfg.account
+  });
+  return walletClient.writeContract(request);
+}
+
 // NFT 구매 by 네이티브 코인
 export async function buyNative(cfg:{rpcUrl:string,chain:any,account:`0x${string}`, market:Address, nft:Address, tokenId:bigint, valueWei:bigint}) {
   const { publicClient, walletClient } = makeClientsBrowser(cfg);

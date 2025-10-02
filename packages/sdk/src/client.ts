@@ -8,7 +8,7 @@ import * as rawSplit from "./split";
 export type ClientOptions = {
   rpcUrl: string;
   chain: Chain;
-  account?: `0x${string}`|undefined;
+  account?: `0x${string}` | undefined;
   addresses: { NFT: Address; Market: Address; SplitFactory?: Address };
 };
 
@@ -31,22 +31,23 @@ export class Client {
 
   private ensureAccount(): `0x${string}` {
     if (!this.account) {
-      throw new Error("Client account is not set. Please connect a wallet first.");
+      throw new Error(
+        "Client account is not set. Please connect a wallet first."
+      );
     }
     return this.account;
   }
 
   // 트랜잭션 채굴 대기
-  waitMining = async(hash:Address)=>{
-      const publicClient = createPublicClient({
+  waitMining = async (hash: Address) => {
+    const publicClient = createPublicClient({
       chain: this.chain,
       transport: http(this.rpcUrl),
     });
 
-    const receipt = await publicClient.waitForTransactionReceipt({hash});
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
     return receipt;
-  }
-
+  };
 
   // ----- Approvals
   approvals = {
@@ -163,6 +164,15 @@ export class Client {
         tokenId: p.tokenId,
         priceWei: p.priceWei,
         isPrimary: p.isPrimary,
+      }),
+    delist: (p: { tokenId: bigint; nft?: Address; market?: Address }) =>
+      rawMarket.delist({
+        rpcUrl: this.rpcUrl,
+        chain: this.chain,
+        account: this.ensureAccount(),
+        market: p.market ?? this.addresses.Market,
+        nft: p.nft ?? this.addresses.NFT,
+        tokenId: p.tokenId,
       }),
     buyNative: (p: {
       tokenId: bigint;
